@@ -2,7 +2,8 @@
 pragma solidity 0.8.7;
 
 //importing interfaces
-import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-contracts/token/ERC20/IERC20.sol";
+
 
 
 
@@ -58,6 +59,11 @@ contract UniswapV1Pair is UniswapV2ERC20{
     //events
     event Mint(address to,uint256 amt0,uint256 amt1);
 
+
+    function update(uint256 _balance,uint256 _balance1)internal{
+        
+    }
+
     //STEPS :
     //1. getting the reserves of the token0 and token1 of the pool
     //2. getting the amount of tokens token0 and token1 hold by the contract (i.e reserves tokens + approved() tokens)
@@ -66,11 +72,12 @@ contract UniswapV1Pair is UniswapV2ERC20{
         //1.If there is no liquidity in the pool
         //LP tokens are calculated by the formula :
         //UniswapV2 people used geometric mean formula = sqrt(amt0 * amt1) - MINIMUM_LIQUIDITY (i.e 1000)
-        //
+        //geometric mean ensures that intial liquidity ratio doesn't affect the value of a pool share.
         
         //2.If aleardy having liquidity in the pool
         //NOTE: Liquidity provider can only put 1 desired amount of tokens another token amount is calculated relative to the ratios in the pool
-
+        //to get liquidity = min((_totalSupply*amt0/_reserves0),(_totalSupply*amt1/_reserves1))
+        //the liquidity is backed by the reserves, so LP tokens mint to Liquidity provider
 
     
     function getReserves()internal view returns(uint112 _resvs0,uint112 _resvs1){
@@ -102,10 +109,55 @@ contract UniswapV1Pair is UniswapV2ERC20{
 
         _mint(to,liquidity);
 
+        update(balance0, balance1);
+
         emit Mint(to,amt0,amt1);
 
         return liquidity;
+    }
 
+
+
+
+    //Removing the liquidity from the pool
+    //STEPs:
+    //1.get the pool reserves of both token0 and token1
+
+
+    //Here we are checking the return value that is retruned from the transfer() function in the 
+    //solmate ERC20 contract
+    function _safeTransfer(address _token,address _to,uint256 _amt)internal {
+        (bool success,bytes memory data)=address(_token).call(abi.encodeWithSignature("transfer(address,uint256)"));
+        require(success && data.length != 0,"transfer failed");
+        IERC20(_token).transfer(_to,_amt);
+    }
+
+
+    function burn(address to)public{
+        //get the reserves
+        uint256 balance0 = IERC20(token0).balanceOf(address(this));
+        uint256 balance1 = IERC20(token1).balanceOf(address(this));
+
+        //totalSupply of LP tokens
+        uint256 _totalsupply=totalSupply;
+
+        uint256 liquidity=balanceOf[to];
+        
+        //Amount of liquidity to return
+        uint256 amt0 = balance0*liquidity/_totalsupply;
+        uint256 amt1 = balance1*liquidity/_totalsupply;
+
+        require(amt0>0 && amt1>0,"insufficient liquidity to remove");
+
+        _burn(to,liquidity);
+
+         //This actually returns nothing, if transfer function fails to transfer
+         //so, It is warapped into a _safeTrasfer() function
+        // IERC20(token0).transfer(to, amt0);
+        // IERC20(token1).transfer(to, amt1);
+
+        _safeTransfer(token0,to,amt0);
+        _safeTransfer(token1,to,amt1);
     }
 
 
