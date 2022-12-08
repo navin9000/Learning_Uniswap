@@ -46,6 +46,18 @@ contract UniswapV1Pair is UniswapV2ERC20{
 
     uint112 private reserves0;
     uint112 private reserves1;
+    uint32 private blockTimestampLast;
+
+
+    uint256 private unlocked=1;
+
+    //modifier
+    modifier lock() {
+        require(unlocked == 1, 'UniswapV2: LOCKED');
+        unlocked = 0;
+        _;
+        unlocked = 1;
+    }
 
 
     //constructor
@@ -58,10 +70,33 @@ contract UniswapV1Pair is UniswapV2ERC20{
 
     //events
     event Mint(address to,uint256 amt0,uint256 amt1);
+    event Burn(address to,uint256 LpTokens);
+    event Update(uint256 reserves0,uint256 reserves1);
 
 
-    function update(uint256 _balance,uint256 _balance1)internal{
+    function update(uint256 _balance0,uint256 _balance1)internal{
+        require(_balance0 < type(uint112).max || _balance1 < type(uint112).max,"balance overflow");
         
+        //calculating the cumlative prices of token0 and token1
+        //unchecked is to disable the overflow and underflow conditions of these varialbles
+        // unchecked {
+        //     uint32 timeElapsed = uint32(block.timestamp) - blockTimestampLast;
+
+        //     if (timeElapsed > 0 && reserves0 > 0 && reserves1 > 0) {
+        //         price0CumulativeLast +=
+        //             uint256(UQ112x112.encode(reserves0).uqdiv(reserves1)) *
+        //             timeElapsed;
+        //         price1CumulativeLast +=
+        //             uint256(UQ112x112.encode(reserves0).uqdiv(reserves1)) *
+        //             timeElapsed;
+        //     }
+        // }
+
+        reserves0 = uint112(_balance0);
+        reserves1 = uint112(_balance1);
+        blockTimestampLast = uint32(block.timestamp);
+
+        emit Update(reserves0,reserves1);
     }
 
     //STEPS :
@@ -78,14 +113,13 @@ contract UniswapV1Pair is UniswapV2ERC20{
         //NOTE: Liquidity provider can only put 1 desired amount of tokens another token amount is calculated relative to the ratios in the pool
         //to get liquidity = min((_totalSupply*amt0/_reserves0),(_totalSupply*amt1/_reserves1))
         //the liquidity is backed by the reserves, so LP tokens mint to Liquidity provider
-
+    //5.update the new balance of tokens to the pool by calling update(uint256 ,uint256 ) function
     
-    function getReserves()internal view returns(uint112 _resvs0,uint112 _resvs1){
-        _resvs0=reserves0;
-        _resvs1=reserves1;
+    function getReserves()private view returns(uint112 _resvs0,uint112 _resvs1){
+        (_resvs0,_resvs1) = (reserves0,reserves1);
     }
 
-    function mint(address to)external returns(uint256 _liquidity){
+    function mint(address to)public returns(uint256 _liquidity){
         (uint112 _reserves0,uint112 _reserves1) = getReserves();
 
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
@@ -122,18 +156,24 @@ contract UniswapV1Pair is UniswapV2ERC20{
     //Removing the liquidity from the pool
     //STEPs:
     //1.get the pool reserves of both token0 and token1
+    //2.get the liquidity of LP tokens of the caller
+    //3.calculating amt0 and amt1
+    //4.burn the liquidity and transfer the proportional ratio of token0 and token1 to the liquidity provider
+    //5._safeTransfer() function is used to transfer to the check it is valid transfer or not
+    //6.update the reservs in the pool
+
 
 
     //Here we are checking the return value that is retruned from the transfer() function in the 
     //solmate ERC20 contract
-    function _safeTransfer(address _token,address _to,uint256 _amt)internal {
+    function _safeTransfer(address _token,address _to,uint256 _amt)private {
         (bool success,bytes memory data)=address(_token).call(abi.encodeWithSignature("transfer(address,uint256)"));
         require(success && data.length != 0,"transfer failed");
         IERC20(_token).transfer(_to,_amt);
     }
 
 
-    function burn(address to)public{
+    function burn(address to)public lock returns(uint256 _amt0,uint256 _amt1){
         //get the reserves
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
         uint256 balance1 = IERC20(token1).balanceOf(address(this));
@@ -141,13 +181,14 @@ contract UniswapV1Pair is UniswapV2ERC20{
         //totalSupply of LP tokens
         uint256 _totalsupply=totalSupply;
 
-        uint256 liquidity=balanceOf[to];
+        //Here user will approve the uniswapV2Pair contract to use the LP tokens
+        uint256 liquidity=balanceOf[address(this)];
         
         //Amount of liquidity to return
         uint256 amt0 = balance0*liquidity/_totalsupply;
         uint256 amt1 = balance1*liquidity/_totalsupply;
 
-        require(amt0>0 && amt1>0,"insufficient liquidity to remove");
+        require(amt0 > 0 && amt1 > 0,"insufficient liquidity to remove");
 
         _burn(to,liquidity);
 
@@ -158,7 +199,14 @@ contract UniswapV1Pair is UniswapV2ERC20{
 
         _safeTransfer(token0,to,amt0);
         _safeTransfer(token1,to,amt1);
-    }
 
+        //updating the balances of reserves to the pool
+        balance0 -= amt0;
+        balance1 -= amt1;
 
+        update(balance0,balance1);
+
+        emit Burn(to,liquidity);
+        return (amt0,amt1);
+    }   
 }
