@@ -7,4 +7,8 @@ interface IuniswapV2Pair{
 
     function mint(address to)external returns(uint256 liquidity);
 
+    function transferFrom(address from,address to,uint256 amount)external returns(bool );
+
+    function burn(address to)external returns(uint256 _amt0,uint256 _amt1);
+
 }

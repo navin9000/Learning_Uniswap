@@ -34,7 +34,11 @@ contract UniswapV2Router{
         )
         public 
     {
-        require(contr_addr != address(0) && (tokenA != address(0) && tokenB != address(0)),"found zero address");
+        require(
+            contr_addr != address(0) &&
+            (tokenA != address(0) && tokenB != address(0)),
+            "found zero address"
+        );
         allTokenAddr[tokenA][tokenB] = contr_addr;
         allTokenAddr[tokenB][tokenA] = contr_addr;
     }
@@ -126,13 +130,46 @@ contract UniswapV2Router{
         uint256 liquidity
         )
     {
-        (amtA,amtB) = _addLiquidity(tokenA,tokenB,desiredAmtTokenA,desiredAmtTokenB,amtAMin,amtBMin);
+        (amtA,amtB) = _addLiquidity(
+            tokenA,
+            tokenB,
+            desiredAmtTokenA,
+            desiredAmtTokenB,
+            amtAMin,
+            amtBMin
+        );
         address contr_addr = allTokenAddr[tokenA][tokenB];
 
         _safeTransfer(tokenA,contr_addr,amtA);
         _safeTransfer(tokenB,contr_addr,amtB);
 
         liquidity = IuniswapV2Pair(contr_addr).mint(to);
+    }
+
+
+    ///@notice Removing Liquidity from the pool
+    
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        uint256 liquidity,
+        address to,
+        uint256 minAmtA,
+        uint256 minAmtB
+        )
+        public
+         returns(
+            uint256 amtA,
+            uint256 amtB
+        )
+    {
+        address contr_addr = allTokenAddr[tokenA][tokenB];
+        // IuniswapV2Pair(contr_addr).transferFrom(msg.sender,contr_addr,liquidity);
+        _safeTransfer(contr_addr,to,liquidity);
+
+        (amtA,amtB) = IuniswapV2Pair(contr_addr).burn(to);
+        require(amtA >= minAmtA,"Insufficient A token amount");
+        require(amtB >= minAmtB,"Insufficinet B token amount");
     }
 
 }

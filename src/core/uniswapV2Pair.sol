@@ -119,7 +119,7 @@ contract UniswapV1Pair is UniswapV2ERC20{
         (_resvs0,_resvs1) = (reserves0,reserves1);
     }
 
-    function mint(address to)public returns(uint256 _liquidity){
+    function mint(address to)external returns(uint256 _liquidity){
         (uint112 _reserves0,uint112 _reserves1) = getReserves();
 
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
@@ -173,7 +173,7 @@ contract UniswapV1Pair is UniswapV2ERC20{
     }
 
 
-    function burn(address to)public lock returns(uint256 _amt0,uint256 _amt1){
+    function burn(address to)external lock returns(uint256 _amt0,uint256 _amt1){
         //get the reserves
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
         uint256 balance1 = IERC20(token1).balanceOf(address(this));
@@ -181,7 +181,7 @@ contract UniswapV1Pair is UniswapV2ERC20{
         //totalSupply of LP tokens
         uint256 _totalsupply=totalSupply;
 
-        //Here user will approve the uniswapV2Pair contract to use the LP tokens
+        //Here the Router contract transfers liquidity to uniswapV2Pair contract 
         uint256 liquidity=balanceOf[address(this)];
         
         //Amount of liquidity to return
