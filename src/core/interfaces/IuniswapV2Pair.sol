@@ -13,11 +13,4 @@ interface IuniswapV2Pair {
     ) external returns (bool);
 
     function burn(address to) external returns (uint256 _amt0, uint256 _amt1);
-
-    function swap(
-        address _token,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address to
-    ) external returns (uint256 amtOut);
 }
