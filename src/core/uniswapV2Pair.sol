@@ -208,5 +208,32 @@ contract UniswapV1Pair is UniswapV2ERC20{
 
         emit Burn(to,liquidity);
         return (amt0,amt1);
+    }
+
+
+    //swapping tokens
+    function swap(
+        address _token,
+        uint256 amountIn0,
+        uint256 minAmountOut1,
+        address to
+        )
+         external
+          returns(
+            uint256 _amtOut
+            )
+    {
+        require(amountIn0 > 0 && minAmountOut1 > 0, "Insufficient funds");
+        require(_token != address(0),"INVALID token address");
+        (uint256 res0, uint256 res1) = getReserves();
+        _amtOut = res0*amountIn0/res1;
+
+        uint256 balance0 = IERC20(token0).balanceOf(address(this));
+        uint256 balance1 = IERC20(token1).balanceOf(address(this));
+
+        require(balance0 * balance1 >= res0 * res1,"failed swap");
+
+        require(_amtOut >= minAmountOut1,"insufficient output amount");
+        IERC20(token1).transfer(to,_amtOut);
     }   
 }
