@@ -1,9 +1,10 @@
 //SPDX-License-Identifier:MIT
 pragma solidity 0.8.7;
 
-import "./interfaces/IuniswapV2Pair.sol";
-import "./interfaces/IERC20.sol";
-import "./interfaces/IuniswapV2Factory.sol";
+// import "./interfaces/IuniswapV2Pair.sol";
+// import "./interfaces/IERC20.sol";
+// import "./interfaces/IuniswapV2Factory.sol";
+import "./interfaces";
 
 /**
  * @title Router contract

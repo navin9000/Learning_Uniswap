@@ -2,7 +2,7 @@
 pragma solidity 0.8.7;
 
 ///imports
-import "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import "lib/openzeppelin-contracts/token/ERC20/IERC20.sol";
 import "./uniswapV2ERC20.sol";
 import "./libraries/Math.sol";
 import "./libraries/UQ112x112.sol";
@@ -17,9 +17,6 @@ import "./libraries/UQ112x112.sol";
  * Reserves are also using this format, so both reserves can fit in 224 bits and 32 bits is lefts for timestamp.
  * Timestamp could be bigger than 32 bits that's why they mod it by 2**32, so it can fit in 32 bits even after 100 years. (check `_update` function)
  * They are saving 3 variables (reserve0 + reserve1 + blockTimestampLast) in a single storage slot for saving gas as we know storage is so expensive
- 
- * Ethereum storage: https://programtheblockchain.com/posts/2018/03/09/understanding-ethereum-smart-contract-storage/
- * Uniswap v2 whitepaper: https://uniswap.org/whitepaper.pdf (2.2.1 Precision)
  */
 
 /**
